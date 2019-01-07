@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import glob
 import serial
 import time
@@ -56,8 +57,13 @@ while True:
     test_ok = False
 
   if (test_ok):
-    print(colored("OK! All tests passed.", 'green'))
+    print(colored("OK! All tests passed.\a", 'green'))
     s.write(b'@')
+  else:
+    for i in range(5):
+      print("\a", end='')
+      sys.stdout.flush()
+      time.sleep(0.2)
 
   s.close()
   print("Please unplug wESP32-Prog.")
