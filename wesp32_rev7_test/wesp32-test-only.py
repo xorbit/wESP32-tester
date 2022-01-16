@@ -8,12 +8,12 @@ import subprocess
 from termcolor import colored
 import json
 
-# These limits are a little sloppy, but the ESP32 ADC isn't very good
+# These limits are a sloppy, because the ESP32 ADC isn't very good
 # so we just do ballpark checks
-VPLUS_MIN = 11.0
-VPLUS_MAX = 13.5
-V3V3_MIN = 3.0
-V3V3_MAX = 3.8
+VPLUS_MIN = 10.0
+VPLUS_MAX = 14.0
+V3V3_MIN = 2.7
+V3V3_MAX = 3.9
 
 # Show or suppress output from tools we call based on DEBUG
 DEBUG = False
@@ -71,27 +71,7 @@ while True:
   
   os.system("""bash -c 'read -s -n 1 -p "Press any key to start test..."'""")
 
-  print("\nWaiting for wESP32 board to be detected...")
-  
-  wait_wesp32_present(True)
-    
-  print("wESP32 detected! Erasing flash...")
-
-  if (subprocess.call(['esptool.py', '--chip', 'esp32', '--port',
-      ports[0], 'erase_flash'], stdout=FOUT, stderr=FOUT) != 0):
-    error("ERROR: Failed to erase flash!")
-    continue
-  
-  print("Programming MicroPython firmware...")
-  
-  if (subprocess.call(['esptool.py', '--chip', 'esp32', '--port',
-      ports[0], '--baud', '921600', 'write_flash', '-z', '0x1000',
-      'esp32-micropython.bin'], stdout=FOUT, stderr=FOUT) != 0):
-    error("ERROR: Failed to program MicroPython!")
-    continue
-  
-  time.sleep(1)
-  print("Loading boot.py...")
+  print("\nLoading boot.py...")
   
   if (not ampy_put('boot.py')):
     error("ERROR: Failed to load boot.py!")

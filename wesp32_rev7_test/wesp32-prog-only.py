@@ -8,12 +8,8 @@ import subprocess
 from termcolor import colored
 import json
 
-# These limits are a little sloppy, but the ESP32 ADC isn't very good
-# so we just do ballpark checks
-VPLUS_MIN = 11.0
-VPLUS_MAX = 13.5
-V3V3_MIN = 3.0
-V3V3_MAX = 3.8
+# Binary to program
+MICROPYTHON_BINARY = 'wesp32-20210902-v1.17.bin'
 
 # Show or suppress output from tools we call based on DEBUG
 DEBUG = False
@@ -31,7 +27,7 @@ def wait_wesp32_present(present):
 # Error message helper
 def error(message):
   print(colored(message, 'red'))
-  #wait_wesp32_present(False)
+  wait_wesp32_present(False)
 
 # Copy a file to the wESP32 internal file system
 def ampy_put(filename):
@@ -45,14 +41,6 @@ def ampy_run(filename):
           'run', filename], stderr=FOUT).decode('utf-8'))
   except:
     return (False, "")
-
-# Check V+ range
-def vplus_ok(v):
-  return v >= VPLUS_MIN and v <= VPLUS_MAX
-  
-# Check V3V3 range
-def v3v3_ok(v):
-  return v >= V3V3_MIN and v <= V3V3_MAX
 
 # Main loop
 while True:
@@ -69,9 +57,7 @@ while True:
   while (not os.access(ports[0], os.R_OK|os.W_OK)):
     time.sleep(0.1)
   
-  os.system("""bash -c 'read -s -n 1 -p "Press any key to start test..."'""")
-
-  print("\nWaiting for wESP32 board to be detected...")
+  print("Waiting for wESP32 board to be detected...")
   
   wait_wesp32_present(True)
     
@@ -86,7 +72,7 @@ while True:
   
   if (subprocess.call(['esptool.py', '--chip', 'esp32', '--port',
       ports[0], '--baud', '921600', 'write_flash', '-z', '0x1000',
-      'esp32-micropython.bin'], stdout=FOUT, stderr=FOUT) != 0):
+      MICROPYTHON_BINARY], stdout=FOUT, stderr=FOUT) != 0):
     error("ERROR: Failed to program MicroPython!")
     continue
   
@@ -96,38 +82,7 @@ while True:
   if (not ampy_put('boot.py')):
     error("ERROR: Failed to load boot.py!")
     continue
-  
-  print("Running test.py test program on wESP32...")
-  
-  (success, output) = ampy_run('test.py')
-  if (not success):
-    error("ERROR: Failed to run test.py!")
-    continue
-  
-  try:
-    results = json.loads(output)
-  except:
-    error("ERROR: Failed to parse output from wESP32 test!")
-    continue
-  
-  print(colored("V+ measured: {:4.1f} V".format(results['vplus']),
-        None if vplus_ok(results['vplus']) else 'red'))
-  print(colored("V3V3 measured: {:4.1f} V".format(results['v3v3']),
-        None if v3v3_ok(results['v3v3']) else 'red'))
-  print(colored("Network: {:s}".format("OK" if results['ip']['ok']
-        else "ERROR"), None if results['ip']['ok'] else 'red'))
-  print(colored("GPIO matrix scan: {:s}".format("OK" if
-        results['gpio']['ok'] else "ERROR"), None if
-        results['gpio']['ok'] else 'red'))
-  if not results['gpio']['ok']:
-    print(colored("Faulty GPIO pairs: {}".format(results['gpio']
-        ['problems']), 'red'))
-  
-  if (not (vplus_ok(results['vplus']) and v3v3_ok(results['v3v3'])
-      and results['ip']['ok'] and results['gpio']['ok'])):
-    error("wESP32 failed test! Please remove wESP32.")
-    continue
-  
-  print(colored("OK! All tests passed, please remove wESP32.", 'green'))
-  #wait_wesp32_present(False)
+
+  print(colored("Done! Please remove wESP32.", 'green'))
+  wait_wesp32_present(False)
   

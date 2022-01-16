@@ -1,0 +1,11 @@
+GPIO connections on the wESP32 test fixture:
+
+IO23 - IO32
+V+ - 14.7K - IO39 - 1K - GND
++3V3 - 4.7K - IO36 - 1K - GND
+IO33 - IO34
+IO35 - IO5 - IO12
+IO18 - IO4
+IO13 - IO15
+IO14 - IO2
+
