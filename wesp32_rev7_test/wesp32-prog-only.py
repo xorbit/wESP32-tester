@@ -9,7 +9,7 @@ from termcolor import colored
 import json
 
 # Binary to program
-MICROPYTHON_BINARY = 'wesp32-20210902-v1.17.bin'
+MICROPYTHON_BINARY = 'wesp32-20220618-v1.19.1.bin'
 
 # Show or suppress output from tools we call based on DEBUG
 DEBUG = False
