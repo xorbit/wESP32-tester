@@ -9,7 +9,7 @@ from termcolor import colored
 import json
 
 # Binary to program
-MICROPYTHON_BINARY = 'wesp32-20220618-v1.19.1.bin'
+MICROPYTHON_BINARY = 'SIL_WESP32-20231227-v1.22.0.bin'
 
 # These limits are sloppy, because the ESP32 ADC isn't very good
 # so we just do ballpark checks
@@ -31,22 +31,25 @@ def wait_wesp32_present(present):
           ports[0], 'chip_id'], stdout=FOUT, stderr=FOUT) != 0) == present):
     pass
 
+# Reset wESP32 module
+def reset_wesp32():
+  return subprocess.call(['esptool.py', '--chip', 'esp32', '--port',
+          ports[0], '--before', 'default_reset', '--after', 'hard_reset', 'run'],
+          stdout=FOUT, stderr=FOUT) != 0
+
 # Error message helper
 def error(message):
   print(colored(message, 'red'))
   #wait_wesp32_present(False)
 
-# Copy a file to the wESP32 internal file system
-def ampy_put(filename):
-  return subprocess.call(['ampy', '-p', ports[0], 'put', filename],
-          stdout=FOUT, stderr=FOUT) == 0
-
 # Run a MicroPython script on the wESP32
-def ampy_run(filename):
+def mpremote_cprun(cpfilename, runfilename):
   try:
-    return (True, subprocess.check_output(['ampy', '-p', ports[0],
-          'run', filename], stderr=FOUT).decode('utf-8'))
-  except:
+    return (True, subprocess.check_output(['mpremote', 'connect', ports[0],
+          'cp', cpfilename, ':' + cpfilename, '+', 'reset', 'connect', ports[0],
+          'sleep', '5', 'run', runfilename], stderr=FOUT).decode('utf-8'))
+  except Exception as e:
+    print (e)
     return (False, "")
 
 # Check V+ range
@@ -93,20 +96,16 @@ while True:
     error("ERROR: Failed to program MicroPython!")
     continue
 
-  time.sleep(1)
-  print("Loading boot.py...")
+  reset_wesp32()
+  time.sleep(2)
+  print("Copying boot.py and running test.py test program on wESP32...")
 
-  if (not ampy_put('boot.py')):
-    error("ERROR: Failed to load boot.py!")
-    continue
-
-  print("Running test.py test program on wESP32...")
-
-  (success, output) = ampy_run('test.py')
+  (success, output) = mpremote_cprun('boot.py', 'test.py')
   if (not success):
-    error("ERROR: Failed to run test.py!")
+    error("ERROR: Failed to copy boot.py or run test.py!")
     continue
 
+  output = output.split('\n')[0]
   try:
     results = json.loads(output)
   except:
